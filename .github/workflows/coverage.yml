@@ -1,0 +1,35 @@
+name: Coverage
+
+on:
+  push:
+    branches-ignore:
+      - "dependabot/**"
+  pull_request:
+
+jobs:
+  build_sdist:
+    name: Coverage
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: wntrblm/nox@2022.11.21
+        with:
+          python-versions: "3.8, 3.11"
+
+      - name: Install Intel SDE
+        run: |
+          curl -fsSLo ${HOME}/sde.tar.xz https://downloadmirror.intel.com/732268/sde-external-9.7.0-2022-05-09-lin.tar.xz
+          mkdir ${HOME}/sde
+          tar -C ${HOME}/sde --strip-components 1 -xf ${HOME}/sde.tar.xz
+          echo "PATH=${HOME}/sde:${PATH}" >> $GITHUB_ENV
+
+      - name: Run coverage tests
+        run: nox -s coverage -- --with-sde
+
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage-native.xml,coverage-python.xml
